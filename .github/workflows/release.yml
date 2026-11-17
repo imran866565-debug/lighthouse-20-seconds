@@ -1,0 +1,27 @@
+name: Attach video to release v1.0
+
+on:
+  workflow_dispatch:
+
+# The repo's default GITHUB_TOKEN is read-only, so the release step in
+# render.yml failed with 403. This workflow declares write explicitly.
+permissions:
+  contents: write
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: lighthouse-20-seconds
+          run-id: 44031173116
+          github-token: ${{ github.token }}
+
+      - name: Upload MP4 to release v1.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la
+          gh release upload v1.0 lighthouse-20-seconds.mp4 --clobber
+          gh release view v1.0 --json assets --jq '.assets[] | .name + " " + (.size | tostring)'
