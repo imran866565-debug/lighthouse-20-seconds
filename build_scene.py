@@ -147,7 +147,7 @@ wave.height = 0.35
 wave.width = 2.0
 wave.speed = 0.8
 wave.lifetime = 0.0
-wave.damping = 0.0
+# NOTE: WaveModifier has no 'damping' in Blender 4.2 — removed
 
 # ---------------------------------------------------------------- island rock
 bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=1.0, location=(0, 0, 0.4))
