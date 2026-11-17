@@ -9,6 +9,10 @@ on:
         options: [stills, full]
         default: stills
 
+# Repo default token is read-only; the release step needs write.
+permissions:
+  contents: write
+
 env:
   BLENDER_VERSION: "4.2.3"
   FRAMES: "528"   # 22s @ 24fps; ffmpeg -shortest trims to the voiceover
