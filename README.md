@@ -31,8 +31,8 @@ animated noise bump, rotating spotlight
 - [x] Materials (procedural Principled, emissive lamp/beam)
 - [x] Lighting (dusk sun + lamp + spots)
 - [x] Camera (orbit rig + Track-To)
-- [ ] Stills validation (3 frames inspected before full render)
-- [ ] Full render + voiceover mux + release
+- [x] Stills validation (3 frames inspected before full render)
+- [x] Full render + voiceover mux + release (v1.0, 21.1s, 1280x720)
 
 ### Execution note
 No Blender MCP is available on the build machine, so the director's MCP
