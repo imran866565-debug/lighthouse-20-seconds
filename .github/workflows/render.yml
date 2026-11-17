@@ -1,0 +1,86 @@
+name: Render Lighthouse (Blender)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "stills = 3 test frames only | full = whole video + release"
+        type: choice
+        options: [stills, full]
+        default: stills
+
+env:
+  BLENDER_VERSION: "4.2.3"
+  FRAMES: "528"   # 22s @ 24fps; ffmpeg -shortest trims to the voiceover
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Blender
+        run: |
+          curl -sL -o blender.tar.xz \
+            https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz
+          tar -xf blender.tar.xz
+          ./blender-${BLENDER_VERSION}-linux-x64/blender --version
+
+      - name: Voiceover (edge-tts, male)
+        run: |
+          pip install -q edge-tts
+          python3 gen_voice.py
+          ffprobe -v error -show_entries format=duration \
+            -of default=noprint_wrappers=1:nokey=1 voice.mp3
+
+      - name: Render stills (validation)
+        if: inputs.mode == 'stills'
+        env:
+          MODE: stills
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          ./blender-${BLENDER_VERSION}-linux-x64/blender -b --python build_scene.py
+          ls -la stills/
+
+      - name: Render full sequence
+        if: inputs.mode == 'full'
+        env:
+          MODE: full
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          ./blender-${BLENDER_VERSION}-linux-x64/blender -b --python build_scene.py
+          ls frames/ | head -5
+          ls frames/ | wc -l
+
+      - name: Mux video + voice
+        if: inputs.mode == 'full'
+        run: |
+          ffmpeg -y -framerate 24 -i frames/frame_%04d.png -i voice.mp3 \
+            -map 0:v -map 1:a -c:v libx264 -pix_fmt yuv420p -c:a aac \
+            -shortest lighthouse-20-seconds.mp4
+          ffprobe -v error -show_entries format=duration,size \
+            -of default=noprint_wrappers=1 lighthouse-20-seconds.mp4
+
+      - name: Upload stills
+        if: inputs.mode == 'stills'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stills
+          path: stills/
+
+      - name: Upload video
+        if: inputs.mode == 'full'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-20-seconds
+          path: lighthouse-20-seconds.mp4
+
+      - name: Release v1.0
+        if: inputs.mode == 'full'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.0 lighthouse-20-seconds.mp4 \
+            --title "v1.0 — The Lighthouse at the Edge of the World" \
+            --notes "20-second Blender cinematic (Eevee). Voice: edge-tts male. No living beings, no music."
