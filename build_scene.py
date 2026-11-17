@@ -1,7 +1,7 @@
 # build_scene.py — "The Lighthouse at the Edge of the World"
 # Blender 4.2 headless scene builder + renderer (Eevee Next).
 # Run:  MODE=stills|full  FRAMES=528  blender -b --python build_scene.py
-#   stills -> renders frames 1 / 264 / 528 as PNGs into ./stills/
+#   stills -> renders frames 1 / 164 / 264 / 528 as PNGs into ./stills/
 #   full   -> renders the whole PNG sequence into ./frames/
 # No living beings. No music (voiceover muxed later by ffmpeg).
 import bpy
@@ -224,8 +224,8 @@ bpy.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, LAMP_Z))
 beam_rig = bpy.context.active_object
 beam_rig.name = "BeamRig"
 for sign, label in ((1, "A"), (-1, "B")):
-    bpy.ops.mesh.primitive_cone_add(radius1=0.25, radius2=1.4, depth=40.0,
-                                    location=(sign * 20.0, 0, 0))
+    bpy.ops.mesh.primitive_cone_add(radius1=0.25, radius2=1.1, depth=25.0,
+                                    location=(sign * 12.5, 0, 0))
     cone = bpy.context.active_object
     cone.name = f"Beam_{label}"
     cone.rotation_euler = (0, math.radians(90 if sign > 0 else -90), 0)
@@ -242,9 +242,13 @@ for sign, label in ((1, "A"), (-1, "B")):
     spot_obj.location = (sign * 0.5, 0, 0)
     spot_obj.rotation_euler = (0, math.radians(-90 if sign > 0 else 90), 0)
     spot_obj.parent = beam_rig
-# beam rotates one full turn across the video
-key_rot(beam_rig, 1, 0.0)
-key_rot(beam_rig, FRAMES, math.radians(360))
+# beam rotates one full turn across the video, starting 90 deg off the
+# camera axis — v2 frame 1 had a beam pointing straight down the lens
+# (camera sat inside the 40-unit cone: full-frame whiteout). With a
+# 25-unit beam the camera stays outside the cone, so the one mid-video
+# pass-by is a soft flash, not a whiteout.
+key_rot(beam_rig, 1, math.radians(90))
+key_rot(beam_rig, FRAMES, math.radians(90 + 360))
 
 # lamp point light
 pl = bpy.data.lights.new("LampPoint", type="POINT")
@@ -324,7 +328,7 @@ key_rot(cam_rig, FRAMES, math.radians(70))
 out_dir = os.path.join(os.getcwd(), "stills" if MODE == "stills" else "frames")
 os.makedirs(out_dir, exist_ok=True)
 if MODE == "stills":
-    for f in (1, FRAMES // 2, FRAMES):
+    for f in (1, 164, FRAMES // 2, FRAMES):  # 164 = beam/camera crossing frame
         scene.frame_current = f
         scene.render.filepath = os.path.join(out_dir, f"still_{f:04d}.png")
         bpy.ops.render.render(write_still=True)
