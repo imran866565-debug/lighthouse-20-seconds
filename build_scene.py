@@ -77,7 +77,7 @@ nt = world.node_tree
 bg = nt.nodes["Background"]
 sky = nt.nodes.new("ShaderNodeTexSky")
 sky.sky_type = "NISHITA"
-sky.sun_elevation = 0.03          # sun just above horizon -> dusk
+sky.sun_elevation = 0.06          # sun just above horizon -> dusk (v1 0.03 = hard black band)
 sky.sun_rotation = 0.6
 sky.altitude = 0.2
 sky.air_density = 1.6
@@ -109,7 +109,7 @@ otex = ont.nodes.new("ShaderNodeTexNoise")
 otex.inputs["Scale"].default_value = 6.0
 otex.inputs["Detail"].default_value = 3.0
 obump = ont.nodes.new("ShaderNodeBump")
-obump.inputs["Strength"].default_value = 0.35
+obump.inputs["Strength"].default_value = 0.2  # v1 0.35 read as a tan/blue checkerboard
 otexcoord = ont.nodes.new("ShaderNodeTexCoord")
 ont.links.new(otexcoord.outputs["Generated"], omap.inputs["Vector"])
 ont.links.new(omap.outputs["Vector"], otex.inputs["Vector"])
@@ -120,16 +120,17 @@ drv.driver.expression = "frame * 0.002"
 drv2 = omap.inputs["Location"].driver_add("default_value", 1)
 drv2.driver.expression = "frame * 0.001"
 
-# beam: mostly transparent, warm emissive
+# beam: mostly transparent, warm emissive (narrower + fainter than v1 —
+# v1 read as a giant solid white wedge in the sky)
 MAT_BEAM = bpy.data.materials.new("MAT_Beam")
 MAT_BEAM.use_nodes = True
 bnt = MAT_BEAM.node_tree
 bem = bnt.nodes.new("ShaderNodeEmission")
 bem.inputs["Color"].default_value = (1.0, 0.82, 0.45, 1.0)
-bem.inputs["Strength"].default_value = 2.0
+bem.inputs["Strength"].default_value = 1.2
 btr = bnt.nodes.new("ShaderNodeBsdfTransparent")
 bmix = bnt.nodes.new("ShaderNodeMixShader")
-bmix.inputs[0].default_value = 0.85  # mostly transparent
+bmix.inputs[0].default_value = 0.92  # mostly transparent
 bout = bnt.nodes["Material Output"]
 bnt.links.new(btr.outputs["BSDF"], bmix.inputs[1])
 bnt.links.new(bem.outputs["Emission"], bmix.inputs[2])
@@ -223,8 +224,8 @@ bpy.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, LAMP_Z))
 beam_rig = bpy.context.active_object
 beam_rig.name = "BeamRig"
 for sign, label in ((1, "A"), (-1, "B")):
-    bpy.ops.mesh.primitive_cone_add(radius1=0.25, radius2=3.2, depth=30.0,
-                                    location=(sign * 15.0, 0, 0))
+    bpy.ops.mesh.primitive_cone_add(radius1=0.25, radius2=1.4, depth=40.0,
+                                    location=(sign * 20.0, 0, 0))
     cone = bpy.context.active_object
     cone.name = f"Beam_{label}"
     cone.rotation_euler = (0, math.radians(90 if sign > 0 else -90), 0)
@@ -232,7 +233,7 @@ for sign, label in ((1, "A"), (-1, "B")):
     cone.parent = beam_rig
     # spotlight along the same direction
     spot = bpy.data.lights.new(f"Spot_{label}", type="SPOT")
-    spot.energy = 800.0
+    spot.energy = 500.0
     spot.color = (1.0, 0.8, 0.45)
     spot.spot_size = math.radians(14)
     spot.spot_blend = 0.4
@@ -296,10 +297,12 @@ for i, (x, y, z, sx, sy, sz) in enumerate([
     add_mesh(cl, MAT_CLOUD)
 
 # ---------------------------------------------------------------- camera orbit rig
-bpy.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, 4.0))
+# v1 framing cut the lamp room + roof off the top of every frame:
+# pull back, raise camera and aim point so the WHOLE tower fits
+bpy.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, 6.5))
 cam_target = bpy.context.active_object
 cam_target.name = "CamTarget"
-bpy.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, 4.0))
+bpy.ops.object.empty_add(type="PLAIN_AXES", location=(0, 0, 6.5))
 cam_rig = bpy.context.active_object
 cam_rig.name = "CamRig"
 cam_data = bpy.data.cameras.new("CAM_Main")
@@ -307,7 +310,7 @@ cam_data.lens = 35
 cam = bpy.data.objects.new("CAM_Main", cam_data)
 bpy.context.collection.objects.link(cam)
 cam.parent = cam_rig
-cam.location = (27.0, 0.0, 3.5)
+cam.location = (36.0, 0.0, 8.0)
 trk = cam.constraints.new("TRACK_TO")
 trk.target = cam_target
 trk.track_axis = "TRACK_NEGATIVE_Z"
