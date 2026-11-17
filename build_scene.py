@@ -59,7 +59,7 @@ scene.frame_start = 1
 scene.frame_end = FRAMES
 scene.render.image_settings.file_format = "PNG"
 scene.view_settings.view_transform = "AgX"
-scene.view_settings.look = "Medium Contrast"
+scene.view_settings.look = "AgX - Base Contrast"  # 4.2 enum: no plain "Medium Contrast"
 ee = scene.eevee
 ee.taa_render_samples = 32
 if hasattr(ee, "use_bloom"):
